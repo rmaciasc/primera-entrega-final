@@ -68,6 +68,7 @@ class ContenedorArchivo {
       content.push(obj);
       await fs.promises.writeFile(this.filename, JSON.stringify(content));
       console.log('Objeto guardado!!');
+      return obj.id;
     } catch (err) {
       console.log(`Error al guardar ${this.filename}: ${err}`);
     }
@@ -82,11 +83,13 @@ class ContenedorArchivo {
     productos[objectIndex] = elem;
 
     await fs.promises.writeFile(this.filename, JSON.stringify(productos));
-
-    // return ;
   }
 
   async borrar(id) {
+    if (id == -1) {
+      return { error: 'Parse req.param.id to int.' };
+    }
+    id = parseInt(id);
     try {
       let content = await fs.promises.readFile(this.filename, 'utf-8');
       if (content.length > 0) {

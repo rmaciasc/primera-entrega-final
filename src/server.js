@@ -37,16 +37,15 @@ function soloAdmins(req, res, next) {
 
 //--------------------------------------------
 // configuro router de productos
-
 const productosRouter = new Router();
-productosRouter.get('/', async (req, res) => {
-  const productos = await productosApi.listarAll();
-  res.json(productos);
-});
-
-productosRouter.get('/:id', async (req, res) => {
-  const product = await productosApi.listar(req.params.id);
-  res.json(product);
+productosRouter.get('/:id?', async (req, res) => {
+  if (req.params.id) {
+    const product = await productosApi.listar(req.params.id);
+    res.json(product);
+  } else {
+    const productos = await productosApi.listarAll();
+    res.json(productos);
+  }
 });
 
 productosRouter.put('/:id', soloAdmins, async (req, res) => {
@@ -70,7 +69,7 @@ productosRouter.delete('/:id', soloAdmins, async (req, res) => {
 // configuro router de carritos
 
 const carritosRouter = new Router();
-
+//
 carritosRouter.get('/', async (req, res) => {
   const cart = await cartApi.listarAll();
   if (cart == null) {
@@ -79,25 +78,44 @@ carritosRouter.get('/', async (req, res) => {
     res.json(cart.map((carrito) => carrito.id));
   }
 });
-
+// Gets products in a cart.
 carritosRouter.get('/:id/productos', async (req, res) => {
   const cart = await cartApi.listar(req.params.id);
   res.json(cart.productos);
 });
-
+// Creates a cart
 carritosRouter.post('/', async (req, res) => {
   const newCartId = await cartApi.guardar({ productos: [] });
   res.json({ newCartId });
 });
 
+// Saves a product into a cart.
 carritosRouter.post('/:id/productos', async (req, res) => {
   const cart = await cartApi.listar(req.params.id);
-  const prod = req.body;
-  cart.productos.push(prod);
+  if (cart) {
+    const prod = req.body;
+    cart.productos.push(prod);
+    await cartApi.actualizar(cart, req.params.id);
+    res.json(cart);
+  } else {
+    res.json(`Cart with id ${req.params.id} not found`);
+  }
+});
+// Deletes a prod in a cart
+carritosRouter.delete('/:id/productos/:id_prod', async (req, res) => {
+  const idProd = parseInt(req.params.id_prod);
+  const cart = await cartApi.listar(req.params.id);
+  console.log('idProd:');
+  console.log(idProd);
+  const prodToDelIndex = cart.productos.findIndex((i) => i.id === idProd);
+  console.log(prodToDelIndex);
+  cart.productos.splice(prodToDelIndex, 1);
   await cartApi.actualizar(cart, req.params.id);
+  res.json(cart);
 });
 
-carritosRouter.delete('/:id/productos/:id_prod', async (req, res) => {
+// Deletes a cart
+carritosRouter.delete('/:id?', async (req, res) => {
   const result = await cartApi.borrar(req.params.id);
   res.json({ result });
 });
